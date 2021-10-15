@@ -2,6 +2,8 @@ package com.aqpfinder;
 
 import com.google.inject.Provides;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,99 +38,103 @@ public class AqpFinderPlugin extends Plugin
 	@Inject
 	private Notifier notifier;
 
-	private final Map<Character, Integer> characterSizeMap = Map.ofEntries(
+	private final Map<Character, Integer> characterSizeMap = createMap();
+	private static Map<Character, Integer> createMap()
+	{
+		Map<Character, Integer> result = new HashMap<>();
 //			upper case
-			Map.entry('A',6),
-			Map.entry('B',5),
-			Map.entry('C',5),
-			Map.entry('D',5),
-			Map.entry('E',4),
-			Map.entry('F',4),
-			Map.entry('G',6),
-			Map.entry('H',5),
-			Map.entry('I',1),
-			Map.entry('J',5),
-			Map.entry('K',5),
-			Map.entry('L',4),
-			Map.entry('M',7),
-			Map.entry('N',6),
-			Map.entry('O',6),
-			Map.entry('P',5),
-			Map.entry('Q',6),
-			Map.entry('R',5),
-			Map.entry('S',5),
-			Map.entry('T',3),
-			Map.entry('U',6),
-			Map.entry('V',5),
-			Map.entry('W',7),
-			Map.entry('X',5),
-			Map.entry('Y',5),
-			Map.entry('Z',5),
+				result.put('A',6);
+				result.put('B',5);
+				result.put('C',5);
+				result.put('D',5);
+				result.put('E',4);
+				result.put('F',4);
+				result.put('G',6);
+				result.put('H',5);
+				result.put('I',1);
+				result.put('J',5);
+				result.put('K',5);
+				result.put('L',4);
+				result.put('M',7);
+				result.put('N',6);
+				result.put('O',6);
+				result.put('P',5);
+				result.put('Q',6);
+				result.put('R',5);
+				result.put('S',5);
+				result.put('T',3);
+				result.put('U',6);
+				result.put('V',5);
+				result.put('W',7);
+				result.put('X',5);
+				result.put('Y',5);
+				result.put('Z',5);
 //			lower case
-			Map.entry('a',5),
-			Map.entry('b',5),
-			Map.entry('c',4),
-			Map.entry('d',5),
-			Map.entry('e',5),
-			Map.entry('f',4),
-			Map.entry('g',5),
-			Map.entry('h',5),
-			Map.entry('i',1),
-			Map.entry('j',4),
-			Map.entry('k',4),
-			Map.entry('l',1),
-			Map.entry('m',7),
-			Map.entry('n',5),
-			Map.entry('o',5),
-			Map.entry('p',5),
-			Map.entry('q',5),
-			Map.entry('r',3),
-			Map.entry('s',5),
-			Map.entry('t',3),
-			Map.entry('u',5),
-			Map.entry('v',5),
-			Map.entry('w',5),
-			Map.entry('x',5),
-			Map.entry('y',5),
-			Map.entry('z',5),
+				result.put('a',5);
+				result.put('b',5);
+				result.put('c',4);
+				result.put('d',5);
+				result.put('e',5);
+				result.put('f',4);
+				result.put('g',5);
+				result.put('h',5);
+				result.put('i',1);
+				result.put('j',4);
+				result.put('k',4);
+				result.put('l',1);
+				result.put('m',7);
+				result.put('n',5);
+				result.put('o',5);
+				result.put('p',5);
+				result.put('q',5);
+				result.put('r',3);
+				result.put('s',5);
+				result.put('t',3);
+				result.put('u',5);
+				result.put('v',5);
+				result.put('w',5);
+				result.put('x',5);
+				result.put('y',5);
+				result.put('z',5);
 //			numbers
-			Map.entry('0',6),
-			Map.entry('1',4),
-			Map.entry('2',6),
-			Map.entry('3',5),
-			Map.entry('4',5),
-			Map.entry('5',5),
-			Map.entry('6',6),
-			Map.entry('7',5),
-			Map.entry('8',6),
-			Map.entry('9',6),
+				result.put('0',6);
+				result.put('1',4);
+				result.put('2',6);
+				result.put('3',5);
+				result.put('4',5);
+				result.put('5',5);
+				result.put('6',6);
+				result.put('7',5);
+				result.put('8',6);
+				result.put('9',6);
 //			symbols
-			Map.entry(' ',1),
-			Map.entry(':',1),
-			Map.entry(';',2),
-			Map.entry('"',3),
-			Map.entry('@',11),
-			Map.entry('!',1),
-			Map.entry('.',1),
-			Map.entry('\'',2),
-			Map.entry(',',2),
-			Map.entry('(',2),
-			Map.entry(')',2),
-			Map.entry('+',5),
-			Map.entry('-',4),
-			Map.entry('=',6),
-			Map.entry('?',6),
-			Map.entry('*',7),
-			Map.entry('/',4),
-			Map.entry('$',6),
-			Map.entry('£',8),
-			Map.entry('^',6),
-			Map.entry('{',3),
-			Map.entry('}',3),
-			Map.entry('[',3),
-			Map.entry(']',3),
-			Map.entry('&',9)
-			);
+				result.put(' ',1);
+				result.put(':',1);
+				result.put(';',2);
+				result.put('"',3);
+				result.put('@',11);
+				result.put('!',1);
+				result.put('.',1);
+				result.put('\'',2);
+				result.put(',',2);
+				result.put('(',2);
+				result.put(')',2);
+				result.put('+',5);
+				result.put('-',4);
+				result.put('=',6);
+				result.put('?',6);
+				result.put('*',7);
+				result.put('/',4);
+				result.put('$',6);
+				result.put('£',8);
+				result.put('^',6);
+				result.put('{',3);
+				result.put('}',3);
+				result.put('[',3);
+				result.put(']',3);
+				result.put('&',9);
+				return Collections.unmodifiableMap(result);
+	}
 
 	@Override
 	protected void startUp() throws Exception
@@ -140,11 +146,6 @@ public class AqpFinderPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 //		log.info("Example stopped!");
-	}
-
-	@Subscribe
-	public void onGameStateChanged(GameStateChanged gameStateChanged)
-	{
 	}
 
 	@Subscribe
