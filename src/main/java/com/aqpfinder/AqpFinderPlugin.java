@@ -9,10 +9,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.MessageNode;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.Notifier;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.config.ConfigManager;
@@ -37,6 +37,9 @@ public class AqpFinderPlugin extends Plugin
 
 	@Inject
 	private Notifier notifier;
+
+	private final String qp = "q p";
+	private final int qpLength = 17;
 
 	private final Map<Character, Integer> characterSizeMap = createMap();
 	private static Map<Character, Integer> createMap()
@@ -154,16 +157,63 @@ public class AqpFinderPlugin extends Plugin
 		MessageNode messageNode = chatMessage.getMessageNode();
 		String message = messageNode.getValue();
 		boolean update = false;
-
-		if(message.contains("q p"))
+		System.out.println(chatMessage.getName());
+		if(message.contains(qp))
 		{
-			String[] messageSegments = message.split("q p");
+			message = message.substring(0, message.lastIndexOf(qp)+3); // Remove characters after last "q p"
+			String[] messageSegments = message.split(qp); // Split
 
-			List<Integer> segmentLengths = Arrays.stream(messageSegments).map(chatMsg -> getChatLength(chatMsg) + 4).collect(Collectors.toList());
-			segmentLengths.set(0, segmentLengths.get(0) + getChatLength(messageNode.getName()) - getChatLength(client.getLocalPlayer().getName()));
+			List<Integer> segmentLengths = Arrays.stream(messageSegments).map(this::getChatLength).collect(Collectors.toList()); // can add 4 to move pixels to vertical of q
+
+			// Get cumulative segment lengths
+			Integer[] segmentIndex = new Integer[segmentLengths.size()];
+			int total = -qpLength; // minus qpLength as offset
+
+			if(messageNode.getType().equals(ChatMessageType.PRIVATECHAT))
+			{
+				// Add From/To offset if "q p" found in PM (same name used for both)
+				segmentLengths.set(0, segmentLengths.get(0) + 4 - 15);
+			}
+			else
+			{
+				// Add player name length offset
+				segmentLengths.set(0, segmentLengths.get(0) + 4 + getChatLength(messageNode.getName()) - getChatLength(client.getLocalPlayer().getName()));
+			}
+
+			// Add account type symbol offset
+			//ToDo Add account type symbol offset
+
+			// Get cumulative segment lengths
+			for(int i = 0; i < segmentIndex.length; i++) {
+				total += segmentLengths.get(i) + qpLength;
+				segmentIndex[i] = total;
+			}
+
+			// Align segments with vertical of the q
 			for(int i = 1; i < segmentLengths.size(); i++)
 			{
-				segmentLengths.set(i, segmentLengths.get(i) + 4);
+				segmentLengths.set(i, segmentLengths.get(i) + 8);
+			}
+
+			if(config.showCumulative())
+			{
+				segmentLengths = Arrays.asList(segmentIndex);
+			}
+			else
+			{
+				// If not using cumulative lengths then set any that are impossible to -1 and make first possible its index value
+				for(int i = 0; i < segmentLengths.size() - 1; i++)
+				{
+					if(segmentIndex[i] < 0)
+					{
+						segmentLengths.set(i+1, segmentIndex[i+1]);
+						segmentLengths.set(i, -1);
+					}
+				}
+				if(segmentIndex[segmentIndex.length - 1] < 0)
+				{
+					segmentLengths.set(segmentIndex.length - 1, -1);
+				}
 			}
 
 			if(config.recommendCharacters())
