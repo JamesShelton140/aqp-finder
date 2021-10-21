@@ -39,4 +39,15 @@ public interface AqpFinderConfig extends Config
 	{
 		return false;
 	}
+
+	@ConfigItem(
+			position = 3,
+			keyName = "hasIcon",
+			name = "Local name icon",
+			description = "Tick if your character name has an icon in chat (iron, pmod etc.)."
+	)
+	default boolean hasIcon()
+	{
+		return false;
+	}
 }

@@ -138,7 +138,9 @@ public class AqpFinderPlugin extends Plugin
 				result.put('&',9);
 				return Collections.unmodifiableMap(result);
 	}
-
+/*
+All icons are size ",   " = 13
+ */
 	@Override
 	protected void startUp() throws Exception
 	{
@@ -157,9 +159,9 @@ public class AqpFinderPlugin extends Plugin
 		MessageNode messageNode = chatMessage.getMessageNode();
 		String message = messageNode.getValue();
 		boolean update = false;
-		System.out.println(chatMessage.getName());
 		if(message.contains(qp))
 		{
+			String originalMessage = message;
 			message = message.substring(0, message.lastIndexOf(qp)+3); // Remove characters after last "q p"
 			String[] messageSegments = message.split(qp); // Split
 
@@ -171,17 +173,24 @@ public class AqpFinderPlugin extends Plugin
 
 			if(messageNode.getType().equals(ChatMessageType.PRIVATECHAT))
 			{
-				// Add From/To offset if "q p" found in PM (same name used for both)
+				// Align first segment with q vertical add From/To offset if "q p" found in PM (same name used for both)
 				segmentLengths.set(0, segmentLengths.get(0) + 4 - 15);
+			}
+			else if(!messageNode.getType().equals(ChatMessageType.PRIVATECHATOUT))
+			{
+				// Align first segment with q vertical and add player name length offset
+				segmentLengths.set(0, segmentLengths.get(0) + 4 + getNameLength(messageNode.getName()) - getNameLength(client.getLocalPlayer().getName()));
 			}
 			else
 			{
-				// Add player name length offset
-				segmentLengths.set(0, segmentLengths.get(0) + 4 + getChatLength(messageNode.getName()) - getChatLength(client.getLocalPlayer().getName()));
+				// Align first segment with q vertical
+				segmentLengths.set(0, segmentLengths.get(0) + 4);
 			}
-
-			// Add account type symbol offset
-			//ToDo Add account type symbol offset
+			// If local player has a chat icon then offset that
+			if((client.getAccountType().isIronman() || client.getAccountType().isGroupIronman() || config.hasIcon()) && !messageNode.getType().equals(ChatMessageType.PRIVATECHATOUT))
+			{
+				segmentLengths.set(0, segmentLengths.get(0) - 13);
+			}
 
 			// Get cumulative segment lengths
 			for(int i = 0; i < segmentIndex.length; i++) {
@@ -218,11 +227,11 @@ public class AqpFinderPlugin extends Plugin
 
 			if(config.recommendCharacters())
 			{
-				message += "   " + segmentLengths.stream().map(this::charactersToW).collect(Collectors.toList());
+				message = originalMessage + "   " + segmentLengths.stream().map(this::charactersToW).collect(Collectors.toList());
 			}
 			else
 			{
-				message += "   " + segmentLengths;
+				message = originalMessage + "   " + segmentLengths;
 			}
 
 			messageNode.setValue(message);
@@ -235,8 +244,6 @@ public class AqpFinderPlugin extends Plugin
 
 		}
 
-
-
 		if (update)
 		{
 			messageNode.setRuneLiteFormatMessage(messageNode.getValue());
@@ -246,7 +253,7 @@ public class AqpFinderPlugin extends Plugin
 
 	private int getChatLength(String chatMsg)
 	{
-		if(chatMsg == null) {return 0;}
+		if(chatMsg == null) {return -5;}
 
 		try
 		{
@@ -259,6 +266,13 @@ public class AqpFinderPlugin extends Plugin
 		{
 			return -5;
 		}
+	}
+
+	private int getNameLength(String name)
+	{
+		if(name == null) {return -5;}
+
+		return getChatLength(name.replaceAll("<img=\\d+>","@"));
 	}
 
 	private String charactersToW(int pixels)
