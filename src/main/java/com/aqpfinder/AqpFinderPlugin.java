@@ -236,18 +236,17 @@ All icons are size ",   " = 13
 
 			messageNode.setValue(message);
 			update = true;
-
-			if(config.notifyOnQP())
-			{
-				notifier.notify("A q p opportunity!");
-			}
-
 		}
 
 		if (update)
 		{
 			messageNode.setRuneLiteFormatMessage(messageNode.getValue());
 			chatMessageManager.update(messageNode);
+
+			if(config.notifyOnQP())
+			{
+				notifier.notify("A q p opportunity!");
+			}
 		}
 	}
 
