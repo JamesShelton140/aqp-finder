@@ -136,11 +136,11 @@ public class AqpFinderPlugin extends Plugin
 				result.put('[',3);
 				result.put(']',3);
 				result.put('&',9);
+//				other
+				result.put('\u00A0',1);//no-break space
 				return Collections.unmodifiableMap(result);
 	}
-/*
-All icons are size ",   " = 13
- */
+
 	@Override
 	protected void startUp() throws Exception
 	{
