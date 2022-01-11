@@ -59,6 +59,9 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 	private final String qp = "q p";
 	private final int qpLength = 17;
 
+	/**
+	 * An immutable map of characters to size in pixels of that character in OSRS chatbox.
+	 */
 	private final Map<Character, Integer> characterSizeMap = createCharacterSizeMap();
 
 	/**
@@ -167,6 +170,9 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 				return Collections.unmodifiableMap(result);
 	}
 
+	/**
+	 * An immutable list of characters that end a sentence in player chat.
+	 */
 	private final List<Character> endSentenceCharList = createEndSentenceCharList();
 
 	/**
@@ -313,12 +319,13 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 						segmentLengths.set(i, -1);
 					}
 				}
-				if(segmentIndex[segmentIndex.length - 1] < 0)
+				if(segmentIndex[segmentIndex.length - 1] < 0) // final iteration of previous loop to avoid overflow
 				{
 					segmentLengths.set(segmentIndex.length - 1, -1);
 				}
 			}
 
+			// Set inline recommendation style
 			if(config.recommendationMode().equals(RecommendationMode.SPACES))
 			{
 				message = originalMessage + "   " + segmentLengths.stream().map(this::spacesToW).collect(Collectors.toList());
@@ -358,6 +365,12 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		}
 	}
 
+	/**
+	 * Returns the pixel width of the specified string in the chatbox.
+	 *
+	 * @param chatMsg the String to measure
+	 * @return the integer width of the specified String
+	 */
 	private int getChatLength(String chatMsg)
 	{
 		if(chatMsg == null) {return -5;}
@@ -375,6 +388,12 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		}
 	}
 
+	/**
+	 * Returns the pixel width of a player name including chat icon if relevant.
+	 *
+	 * @param name the player name to measure
+	 * @return the integer width of the specified name with chat icon
+	 */
 	private int getNameLength(String name)
 	{
 		if(name == null) {return -5;}
@@ -382,6 +401,15 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		return getChatLength(name.replaceAll("<img=\\d+>","@"));
 	}
 
+	/**
+	 * Returns a string recommendation including the number of space characters to give a total width in pixels equal to the given integer.
+	 *
+	 * If the given integer width cannot be met with only spaces then another character is included.
+	 * This character cannot be a letter as case is not guaranteed.
+	 *
+	 * @param pixels the integer pixel width to match
+	 * @return a String that contains the number of spaces (and other characters) required to match the specified integer width, or "impossible" if pixels is too small
+	 */
 	private String spacesToW(int pixels)
 	{
 		String recommendation = "";
@@ -416,8 +444,25 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		return configManager.getConfig(AqpFinderConfig.class);
 	}
 
+	/**
+	 * Formats the given String to match format of public chat messages.
+	 *
+	 * Format rules:
+	 * <ul>
+	 *  <li>If the first non-whitespace character of a sentence is a letter then it is forced upper case.</li>
+	 *  <li>Any letter immediately proceeded by a letter is forced lower case.</li>
+	 *  <li>A sentence is ended by the characters: . ! ?</li>
+	 *</ul>
+	 * @param chatText the string to be formatted as a public chat message
+	 * @return the formatted string or an empty string if chatText is null
+	 */
 	private String formatChatText(String chatText)
 	{
+		if(chatText == null)
+		{
+			return "";
+		}
+
 		char[] chatTextArray = chatText.toCharArray();
 		boolean inWord = false;
 		boolean newSentence = true;
@@ -456,6 +501,9 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		return new String(chatTextArray);
 	}
 
+	/**
+	 * Updates the stored string to be the current string typed into the input of the last "q p" message received.
+	 */
 	private void refreshChatBoxTypedText()
 	{
 		String newText = "";
@@ -477,6 +525,10 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		}
 	}
 
+	/**
+	 * Creates recommendation lines and corresponding red colour value for all "q p"s in the most recent message containing at least one.
+	 * Recommendations take the current chat input into account.
+	 */
 	private void updateOverlayText()
 	{
 		overlayText.clear();
@@ -511,6 +563,9 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		}
 	}
 
+	/**
+	 * Refreshes the chatbox input and updates the recommendation overlay if it is enabled and last message includes a qp.
+	 */
 	private void checkChatBoxUpdateOverlay()
  	{
 		if(lastMessageIncludesQP && config.showOverlay())
