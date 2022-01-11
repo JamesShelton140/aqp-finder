@@ -51,4 +51,26 @@ public interface AqpFinderConfig extends Config
 	{
 		return false;
 	}
+
+	@ConfigItem(
+			position = 4,
+			keyName = "showOverlay",
+			name = "Use overlay",
+			description = "Enables a dynamic overlay that displays recommendations when a q p is present."
+	)
+	default boolean showOverlay()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+			position = 5,
+			keyName = "giveInlineHints",
+			name = "Inline hints",
+			description = "Hints are printed inline with the message containing \"q p\"."
+	)
+	default boolean giveInlineHints()
+	{
+		return false;
+	}
 }

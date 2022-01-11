@@ -1,31 +1,40 @@
 package com.aqpfinder;
 
+import com.aqpfinder.config.RecommendationMode;
 import com.google.inject.Provides;
+import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.MessageNode;
+import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.Notifier;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.input.KeyListener;
+import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.overlay.OverlayManager;
 
 @Slf4j
 @PluginDescriptor(
 	name = "Aqp Finder"
 )
-public class AqpFinderPlugin extends Plugin
-{
+public class AqpFinderPlugin extends Plugin implements KeyListener {
 	@Inject
 	private Client client;
 
@@ -38,11 +47,27 @@ public class AqpFinderPlugin extends Plugin
 	@Inject
 	private Notifier notifier;
 
+	@Inject
+	private KeyManager keyManager;
+
+	@Inject
+	private OverlayManager overlayManager;
+
+	@Inject
+	private AqpFinderOverlay overlay;
+
 	private final String qp = "q p";
 	private final int qpLength = 17;
 
-	private final Map<Character, Integer> characterSizeMap = createMap();
-	private static Map<Character, Integer> createMap()
+	private final Map<Character, Integer> characterSizeMap = createCharacterSizeMap();
+
+	/**
+	 * Creates an immutable map of characters to size in pixels of that character in OSRS chatbox.
+	 * Sizes listed cover the visible character only. Each character is padded by 2 blank pixels when printed in chat.
+	 *
+	 * @return immutable map of (character, size) pairs.
+	 */
+	private static Map<Character, Integer> createCharacterSizeMap()
 	{
 		Map<Character, Integer> result = new HashMap<>();
 //			upper case
@@ -136,21 +161,82 @@ public class AqpFinderPlugin extends Plugin
 				result.put('[',3);
 				result.put(']',3);
 				result.put('&',9);
+				result.put('#',11);
 //				other
 				result.put('\u00A0',1);//no-break space
 				return Collections.unmodifiableMap(result);
 	}
 
+	private final List<Character> endSentenceCharList = createEndSentenceCharList();
+
+	/**
+	 * Creates an immutable list of characters that end a sentence in player chat.
+	 * A character is considered to end a sentence if an immediately following letter is formatted to upper case in chat.
+	 *
+	 * @return immutable list of end of sentence characters.
+	 */
+	private static List<Character> createEndSentenceCharList()
+	{
+		List<Character> result = new ArrayList<>();
+
+		result.add('.');
+		result.add('!');
+		result.add('?');
+
+		return Collections.unmodifiableList(result);
+	}
+
+	@Getter
+	private boolean lastMessageIncludesQP = false;
+	private boolean lastQPFromPM = false;
+	private Integer[] lastMessageSegmentIndex = new Integer[0];
+	private String chatBoxTypedText = "";
+	private int chatBoxTypedTextLength = 0;
+	@Getter
+	private final List<String> overlayText = new ArrayList<>();
+	@Getter
+	private final List<Integer> overlayTextColour = new ArrayList<>();
+
 	@Override
 	protected void startUp() throws Exception
 	{
 //		log.info("Example started!");
+		keyManager.registerKeyListener(this);
+		if(config.showOverlay())
+		{
+			overlayManager.add(overlay);
+		}
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
 //		log.info("Example stopped!");
+		keyManager.unregisterKeyListener(this);
+		if(config.showOverlay())
+		{
+			overlayManager.remove(overlay);
+		}
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event) {
+		if (event.getKey().equals("showOverlay"))
+		{
+			if (config.showOverlay())
+			{
+				overlayManager.add(overlay);
+				if(lastMessageIncludesQP)
+				{
+					refreshChatBoxTypedText();
+					updateOverlayText();
+				}
+			}
+			else
+			{
+				overlayManager.remove(overlay);
+			}
+		}
 	}
 
 	@Subscribe
@@ -161,6 +247,7 @@ public class AqpFinderPlugin extends Plugin
 		boolean update = false;
 		if(message.contains(qp))
 		{
+			lastMessageIncludesQP = true;
 			String originalMessage = message;
 			message = message.substring(0, message.lastIndexOf(qp)+3); // Remove characters after last "q p"
 			String[] messageSegments = message.split(qp); // Split
@@ -171,22 +258,26 @@ public class AqpFinderPlugin extends Plugin
 			Integer[] segmentIndex = new Integer[segmentLengths.size()];
 			int total = -qpLength; // minus qpLength as offset
 
-			if(messageNode.getType().equals(ChatMessageType.PRIVATECHAT))
+			if(messageNode.getType().equals(ChatMessageType.PRIVATECHAT)) // Private message from another player
 			{
-				// Align first segment with q vertical add From/To offset if "q p" found in PM (same name used for both)
+				// Align first segment with q vertical (+4) and add From/To offset (-15) if "q p" found in PM (same name used for both)
 				segmentLengths.set(0, segmentLengths.get(0) + 4 - 15);
+				lastQPFromPM = true;
 			}
-			else if(!messageNode.getType().equals(ChatMessageType.PRIVATECHATOUT))
-			{
-				// Align first segment with q vertical and add player name length offset
-				segmentLengths.set(0, segmentLengths.get(0) + 4 + getNameLength(messageNode.getName()) - getNameLength(client.getLocalPlayer().getName()));
-			}
-			else
+			else if(messageNode.getType().equals(ChatMessageType.PRIVATECHATOUT)) // Private message not sent from the local player
 			{
 				// Align first segment with q vertical
 				segmentLengths.set(0, segmentLengths.get(0) + 4);
+				lastQPFromPM = true;
 			}
-			// If local player has a chat icon then offset that
+			else // Not private message
+			{
+				// Align first segment with q vertical and add player name length offset
+				segmentLengths.set(0, segmentLengths.get(0) + 4 + getNameLength(messageNode.getName()) - getNameLength(client.getLocalPlayer().getName()));
+				lastQPFromPM = false;
+			}
+
+			// If local player has a chat icon then offset that (-13)
 			if((client.getAccountType().isIronman() || client.getAccountType().isGroupIronman() || config.hasIcon()) && !messageNode.getType().equals(ChatMessageType.PRIVATECHATOUT))
 			{
 				segmentLengths.set(0, segmentLengths.get(0) - 13);
@@ -197,6 +288,9 @@ public class AqpFinderPlugin extends Plugin
 				total += segmentLengths.get(i) + qpLength;
 				segmentIndex[i] = total;
 			}
+
+			// Save array of each q p index for dynamic overlay
+			lastMessageSegmentIndex = Arrays.copyOf(segmentIndex, segmentIndex.length);
 
 			// Align segments with vertical of the q
 			for(int i = 1; i < segmentLengths.size(); i++)
@@ -234,8 +328,22 @@ public class AqpFinderPlugin extends Plugin
 				message = originalMessage + "   " + segmentLengths;
 			}
 
-			messageNode.setValue(message);
+			if (config.giveInlineHints())
+			{
+				messageNode.setValue(message);
+			}
 			update = true;
+		}
+		else if(lastMessageIncludesQP)
+		{
+			lastMessageIncludesQP = false;
+			lastMessageSegmentIndex = null;
+		}
+
+		if(lastMessageIncludesQP && config.showOverlay())
+		{
+			refreshChatBoxTypedText();
+			updateOverlayText();
 		}
 
 		if (update)
@@ -306,5 +414,124 @@ public class AqpFinderPlugin extends Plugin
 	AqpFinderConfig provideConfig(ConfigManager configManager)
 	{
 		return configManager.getConfig(AqpFinderConfig.class);
+	}
+
+	private String formatChatText(String chatText)
+	{
+		char[] chatTextArray = chatText.toCharArray();
+		boolean inWord = false;
+		boolean newSentence = true;
+
+		for (int i = 0; i < chatTextArray.length; i++)
+		{
+			char ch = chatTextArray[i];
+
+			if (Character.isLetter(ch))
+			{
+				if (inWord)
+				{
+					chatTextArray[i] = Character.toLowerCase(ch);
+				}
+				if (newSentence)
+				{
+					chatTextArray[i] = Character.toUpperCase(ch);
+				}
+				inWord = true;
+			}
+			else
+			{
+				inWord = false;
+			}
+
+			if(endSentenceCharList.contains(ch))
+			{
+				newSentence = true;
+			}
+			else if(!Character.isWhitespace(ch))
+			{
+				newSentence = false;
+			}
+		}
+
+		return new String(chatTextArray);
+	}
+
+	private void refreshChatBoxTypedText()
+	{
+		String newText = "";
+		if(lastQPFromPM)
+		{
+			newText = client.getVar(VarClientStr.INPUT_TEXT);
+		}
+		else
+		{
+			newText = client.getVar(VarClientStr.CHATBOX_TYPED_TEXT);
+		}
+
+		newText = formatChatText(newText);
+
+		if (!Objects.equals(newText, chatBoxTypedText))
+		{
+			chatBoxTypedText = newText;
+			chatBoxTypedTextLength = getChatLength(chatBoxTypedText);
+		}
+	}
+
+	private void updateOverlayText()
+	{
+		overlayText.clear();
+		overlayTextColour.clear();
+		for (Integer seg : lastMessageSegmentIndex) {
+
+			int scaledPercentPixelsToW;
+			if (seg < 0)
+			{
+				scaledPercentPixelsToW = 255;
+			}
+			else
+			{
+				scaledPercentPixelsToW = Math.min(Math.round( Math.abs(((seg - chatBoxTypedTextLength) * 255) / (float) seg)), 255);
+			}
+
+			String lineText = "error";
+
+			if (seg - chatBoxTypedTextLength >= 3) {
+				lineText = spacesToW(seg - chatBoxTypedTextLength);
+			} else if (3 > seg - chatBoxTypedTextLength && seg - chatBoxTypedTextLength > 0) {
+				lineText = "Too close.";
+			} else if (seg == chatBoxTypedTextLength) {
+//				lineText = "Target acquired.";
+				lineText = "Hit W now!";
+			} else if (seg - chatBoxTypedTextLength < 0) {
+				lineText = "Too far.";
+			}
+
+			overlayText.add(lineText);
+			overlayTextColour.add(scaledPercentPixelsToW);
+		}
+	}
+
+	private void checkChatBoxUpdateOverlay()
+ 	{
+		if(lastMessageIncludesQP && config.showOverlay())
+		{
+			refreshChatBoxTypedText();
+			updateOverlayText();
+		}
+ 	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+		checkChatBoxUpdateOverlay();
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		checkChatBoxUpdateOverlay();
 	}
 }
