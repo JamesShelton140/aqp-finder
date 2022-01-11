@@ -225,9 +225,9 @@ public class AqpFinderPlugin extends Plugin
 				}
 			}
 
-			if(config.recommendCharacters())
+			if(config.recommendationMode().equals(RecommendationMode.SPACES))
 			{
-				message = originalMessage + "   " + segmentLengths.stream().map(this::charactersToW).collect(Collectors.toList());
+				message = originalMessage + "   " + segmentLengths.stream().map(this::spacesToW).collect(Collectors.toList());
 			}
 			else
 			{
@@ -274,32 +274,32 @@ public class AqpFinderPlugin extends Plugin
 		return getChatLength(name.replaceAll("<img=\\d+>","@"));
 	}
 
-	private String charactersToW(int pixels)
+	private String spacesToW(int pixels)
 	{
-		String characters = "";
+		String recommendation = "";
 
 		if(pixels % 3 == 1)
 		{
 			pixels -= 4;
-			characters += ", and ";
+			recommendation += ", and ";
 		}
 
 		if(pixels % 3 == 2)
 		{
 			pixels -= 5;
-			characters += "\" and ";
+			recommendation += "\" and ";
 		}
 
 		if(pixels < 0)
 		{
-			characters = "impossible";
+			recommendation = "impossible";
 		}
 		else
 		{
-			characters += pixels/3 + " spaces";
+			recommendation += pixels/3 + " spaces";
 		}
 
-		return characters;
+		return recommendation;
 	}
 
 	@Provides

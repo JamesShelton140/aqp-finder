@@ -3,19 +3,20 @@ package com.aqpfinder;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import com.aqpfinder.config.RecommendationMode;
 
 @ConfigGroup("aqpfinder")
 public interface AqpFinderConfig extends Config
 {
 	@ConfigItem(
 		position = 0,
-		keyName = "recommendCharacters",
-		name = "Character recommendations",
-		description = "Replaces pixel count with recommended characters before W. Prioritises spaces."
+		keyName = "recommendationMode",
+		name = "Recommendations",
+		description = "Configures the recommendations to be displayed in pixels or spaces (default)."
 	)
-	default boolean recommendCharacters()
+	default RecommendationMode recommendationMode()
 	{
-		return true;
+		return RecommendationMode.SPACES;
 	}
 
 	@ConfigItem(
