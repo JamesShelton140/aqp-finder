@@ -290,7 +290,8 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 			}
 
 			// Get cumulative segment lengths
-			for(int i = 0; i < segmentIndex.length; i++) {
+			for(int i = 0; i < segmentIndex.length; i++)
+			{
 				total += segmentLengths.get(i) + qpLength;
 				segmentIndex[i] = total;
 			}
@@ -356,7 +357,6 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		if (update)
 		{
 			messageNode.setRuneLiteFormatMessage(messageNode.getValue());
-			chatMessageManager.update(messageNode);
 
 			if(config.notifyOnQP())
 			{
@@ -509,11 +509,11 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		String newText = "";
 		if(lastQPFromPM)
 		{
-			newText = client.getVar(VarClientStr.INPUT_TEXT);
+			newText = client.getVarcStrValue(VarClientStr.INPUT_TEXT);
 		}
 		else
 		{
-			newText = client.getVar(VarClientStr.CHATBOX_TYPED_TEXT);
+			newText = client.getVarcStrValue(VarClientStr.CHATBOX_TYPED_TEXT);
 		}
 
 		newText = formatChatText(newText);
