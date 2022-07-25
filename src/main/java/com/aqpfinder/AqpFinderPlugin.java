@@ -360,7 +360,7 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 
 			if(config.notifyOnQP())
 			{
-				notifier.notify("A q p opportunity!");
+				notifier.notify("A qp opportunity!");
 			}
 		}
 	}
