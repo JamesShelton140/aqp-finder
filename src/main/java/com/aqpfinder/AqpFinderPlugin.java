@@ -206,7 +206,6 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 	@Override
 	protected void startUp() throws Exception
 	{
-//		log.info("Example started!");
 		keyManager.registerKeyListener(this);
 		if(config.showOverlay())
 		{
@@ -217,7 +216,6 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 	@Override
 	protected void shutDown() throws Exception
 	{
-//		log.info("Example stopped!");
 		keyManager.unregisterKeyListener(this);
 		if(config.showOverlay())
 		{
@@ -515,6 +513,20 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		{
 			newText = client.getVarcStrValue(VarClientStr.CHATBOX_TYPED_TEXT);
 		}
+
+		// ignore chat box channel command strings
+		int controlCharacters = 0;
+		if(newText.matches("//.*|/p.*|/P.*|/f.*|/F.*|/c.*|/C.*|/g.*|/G.*"))
+		{
+			controlCharacters = 2;
+		}
+
+		if(newText.matches("/gc.*|/GC.*|/Gc.*|/gC.*"))
+		{
+			controlCharacters = 3;
+		}
+
+		newText = newText.substring(controlCharacters);
 
 		newText = formatChatText(newText);
 
