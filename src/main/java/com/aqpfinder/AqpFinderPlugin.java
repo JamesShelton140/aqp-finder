@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
+import net.runelite.api.FriendsChatRank;
 import net.runelite.api.MessageNode;
 import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ChatMessage;
@@ -276,8 +277,23 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 			}
 			else // Not private message
 			{
+				String sender = messageNode.getName();
+				String localPlayer = client.getLocalPlayer().getName();
+
+				int senderNameLength = getNameLength(sender);
+				int localNameLength = getNameLength(localPlayer);
+
+				// Account for Friends Chat icons
+				FriendsChatRank rank;
+				if(messageNode.getType().equals(ChatMessageType.FRIENDSCHAT))
+				{
+					senderNameLength += getFriendsChatRankIconSize(messageNode.getName());
+					localNameLength += getFriendsChatRankIconSize(client.getLocalPlayer().getName());
+				}
+
 				// Align first segment with q vertical and add player name length offset
-				segmentLengths.set(0, segmentLengths.get(0) + 4 + getNameLength(messageNode.getName()) - getNameLength(client.getLocalPlayer().getName()));
+				segmentLengths.set(0, segmentLengths.get(0) + 4 + senderNameLength - localNameLength);
+
 				lastQPFromPM = false;
 			}
 
@@ -361,6 +377,31 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 				notifier.notify("A qp opportunity!");
 			}
 		}
+	}
+
+	/**
+	 * Returns the pixel width of the friends chat rank icon of the specified player.
+	 *
+	 * @param name the name of the player to check
+	 * @return integer width of rank icon
+	 */
+	private int getFriendsChatRankIconSize(String name)
+	{
+		int length = 0;
+		try {
+			FriendsChatRank rank;
+			rank = client.getFriendsChatManager()
+					.findByName(name.replaceAll("<img=\\d+>", ""))
+					.getRank();
+			length = rank.equals(FriendsChatRank.UNRANKED) ? 0 : 11; // No icon if unranked, icon size = 11px
+		}
+		catch(NullPointerException e)
+		{
+			log.warn("Caught NullPointerException.");
+			e.printStackTrace();
+		}
+
+		return length;
 	}
 
 	/**
