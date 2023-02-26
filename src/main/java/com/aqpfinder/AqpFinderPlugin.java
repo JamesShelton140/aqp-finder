@@ -516,6 +516,12 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 
 		// ignore chat box channel command strings
 		int controlCharacters = 0;
+
+		if(newText.matches("/.*"))
+		{
+			controlCharacters = 1;
+		}
+
 		if(newText.matches("//.*|/p.*|/P.*|/f.*|/F.*|/c.*|/C.*|/g.*|/G.*"))
 		{
 			controlCharacters = 2;
