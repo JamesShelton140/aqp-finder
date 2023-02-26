@@ -397,8 +397,7 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		}
 		catch(NullPointerException e)
 		{
-			log.warn("Caught NullPointerException.");
-			e.printStackTrace();
+			log.warn("Caught NullPointerException when trying to find \"{}\"", name.replaceAll("<img=\\d+>", ""));
 		}
 
 		return length;
