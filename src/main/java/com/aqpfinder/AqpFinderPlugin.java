@@ -18,6 +18,7 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.FriendsChatRank;
 import net.runelite.api.MessageNode;
+import net.runelite.api.Varbits;
 import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.Notifier;
@@ -298,7 +299,7 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 			}
 
 			// If local player has a chat icon then offset that (-13)
-			if((client.getAccountType().isIronman() || client.getAccountType().isGroupIronman() || config.hasIcon()) && !messageNode.getType().equals(ChatMessageType.PRIVATECHATOUT))
+			if((client.getVarbitValue(Varbits.ACCOUNT_TYPE) != 0 || config.hasIcon()) && !messageNode.getType().equals(ChatMessageType.PRIVATECHATOUT))
 			{
 				segmentLengths.set(0, segmentLengths.get(0) - 13);
 			}
