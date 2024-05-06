@@ -20,7 +20,7 @@ public interface AqpFinderConfig extends Config
 	}
 
 	@ConfigItem(
-			position = 1,
+			position = 10,
 			keyName = "showCumulative",
 			name = "Cumulative lengths",
 			description = "Distance shown to each \"q p\" is from message start."
@@ -31,7 +31,7 @@ public interface AqpFinderConfig extends Config
 	}
 
 	@ConfigItem(
-		position = 2,
+		position = 20,
 		keyName = "notifyOnQP",
 		name = "Notify on q p",
 		description = "Notifies when a possible q p is found. Why would you use this?"
@@ -42,7 +42,7 @@ public interface AqpFinderConfig extends Config
 	}
 
 	@ConfigItem(
-			position = 3,
+			position = 30,
 			keyName = "hasIcon",
 			name = "Local name icon",
 			description = "Tick if your character name has an icon in chat (iron, pmod etc.)."
@@ -53,7 +53,7 @@ public interface AqpFinderConfig extends Config
 	}
 
 	@ConfigItem(
-			position = 4,
+			position = 40,
 			keyName = "showOverlay",
 			name = "Use overlay",
 			description = "Enables a dynamic overlay that displays recommendations when a q p is present."
@@ -64,12 +64,23 @@ public interface AqpFinderConfig extends Config
 	}
 
 	@ConfigItem(
-			position = 5,
+			position = 50,
 			keyName = "giveInlineHints",
 			name = "Inline hints",
 			description = "Hints are printed inline with the message containing \"q p\"."
 	)
 	default boolean giveInlineHints()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+			position = 60,
+			keyName = "findMicroQPs",
+			name = "Find Micro qp",
+			description = "Find \"qp\" to make micro-qps using alt + 0176."
+	)
+	default boolean findMicroQPs()
 	{
 		return false;
 	}

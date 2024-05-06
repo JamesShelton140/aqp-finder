@@ -60,6 +60,10 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 
 	private final String qp = "q p";
 	private final int qpLength = 17;
+	private final String microqp = "qp";
+	private final int microqpLength = 14;
+	private final int qVerticalOffset = 4;
+	private final int chatIconLength = 13;
 
 	/**
 	 * An immutable map of characters to size in pixels of that character in OSRS chatbox.
@@ -167,6 +171,7 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 				result.put(']',3);
 				result.put('&',9);
 				result.put('#',11);
+				result.put('°',4);
 //				other
 				result.put('\u00A0',1);//no-break space
 				return Collections.unmodifiableMap(result);
@@ -198,6 +203,7 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 	private boolean lastMessageIncludesQP = false;
 	private boolean lastQPFromPM = false;
 	private Integer[] lastMessageSegmentIndex = new Integer[0];
+	private String[] lastMessageQPIndex = new String[0];
 	private String chatBoxTypedText = "";
 	private int chatBoxTypedTextLength = 0;
 	@Getter
@@ -251,29 +257,69 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		MessageNode messageNode = chatMessage.getMessageNode();
 		String message = messageNode.getValue();
 		boolean update = false;
-		if(message.contains(qp))
+
+		if(lastMessageIncludesQP)
+		{
+			lastMessageIncludesQP = false;
+			lastMessageSegmentIndex = null;
+		}
+
+		if(containsQP(message))
 		{
 			lastMessageIncludesQP = true;
 			String originalMessage = message;
-			message = message.substring(0, message.lastIndexOf(qp)+3); // Remove characters after last "q p"
-			String[] messageSegments = message.split(qp); // Split
 
-			List<Integer> segmentLengths = Arrays.stream(messageSegments).map(this::getChatLength).collect(Collectors.toList()); // can add 4 to move pixels to vertical of q
+			List<String> messageSegments = new ArrayList<>();
+			List<String> qpList = new ArrayList<>();
+
+			while(containsQP(message))
+			{
+				int nextQPIndex = message.indexOf(qp);
+				int nextMicroQPIndex = (config.findMicroQPs()) ? message.indexOf(microqp) : -1;
+
+				String nextQP;
+				int nextQPLength;
+				int nextQPLocation;
+
+				// message contains "q p" and "qp" not found (earlier)
+				if (nextQPIndex >= 0 && (nextMicroQPIndex == -1 || nextQPIndex < nextMicroQPIndex))
+				{
+					nextQP = qp;
+					nextQPLength = qpLength;
+					nextQPLocation = nextQPIndex;
+				}
+				else // message must contain "qp" first
+				{
+					nextQP = microqp;
+					nextQPLength = microqpLength;
+					nextQPLocation = nextMicroQPIndex;
+				}
+
+				messageSegments.add(message.substring(0, nextQPLocation));
+				qpList.add(nextQP);
+
+				message = message.substring(nextQPLocation + nextQP.length());
+			}
+
+//			message = message.substring(0, message.lastIndexOf(qp) + qp.length()); // Remove characters after last "q p"
+//			String[] messageSegments = message.split(qp); // Split
+
+			List<Integer> segmentLengths = messageSegments.stream().map(this::getChatLength).collect(Collectors.toList()); // can add 4 to move pixels to vertical of q
 
 			// Get cumulative segment lengths
 			Integer[] segmentIndex = new Integer[segmentLengths.size()];
-			int total = -qpLength; // minus qpLength as offset
+			int total = - getChatLength(qpList.get(0)); // minus qpLength as offset
 
 			if(messageNode.getType().equals(ChatMessageType.PRIVATECHAT)) // Private message from another player
 			{
 				// Align first segment with q vertical (+4) and add From/To offset (-15) if "q p" found in PM (same name used for both)
-				segmentLengths.set(0, segmentLengths.get(0) + 4 - 15);
+				segmentLengths.set(0, segmentLengths.get(0) + qVerticalOffset - 15);
 				lastQPFromPM = true;
 			}
 			else if(messageNode.getType().equals(ChatMessageType.PRIVATECHATOUT)) // Private message not sent from the local player
 			{
 				// Align first segment with q vertical
-				segmentLengths.set(0, segmentLengths.get(0) + 4);
+				segmentLengths.set(0, segmentLengths.get(0) + qVerticalOffset);
 				lastQPFromPM = true;
 			}
 			else // Not private message
@@ -285,7 +331,6 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 				int localNameLength = getNameLength(localPlayer);
 
 				// Account for Friends Chat icons
-				FriendsChatRank rank;
 				if(messageNode.getType().equals(ChatMessageType.FRIENDSCHAT))
 				{
 					senderNameLength += getFriendsChatRankIconSize(messageNode.getName());
@@ -293,7 +338,7 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 				}
 
 				// Align first segment with q vertical and add player name length offset
-				segmentLengths.set(0, segmentLengths.get(0) + 4 + senderNameLength - localNameLength);
+				segmentLengths.set(0, segmentLengths.get(0) + qVerticalOffset + senderNameLength - localNameLength);
 
 				lastQPFromPM = false;
 			}
@@ -301,18 +346,19 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 			// If local player has a chat icon then offset that (-13)
 			if((client.getVarbitValue(Varbits.ACCOUNT_TYPE) != 0 || config.hasIcon()) && !messageNode.getType().equals(ChatMessageType.PRIVATECHATOUT))
 			{
-				segmentLengths.set(0, segmentLengths.get(0) - 13);
+				segmentLengths.set(0, segmentLengths.get(0) - chatIconLength);
 			}
 
 			// Get cumulative segment lengths
 			for(int i = 0; i < segmentIndex.length; i++)
 			{
-				total += segmentLengths.get(i) + qpLength;
+				total += segmentLengths.get(i) + getChatLength(qpList.get(i));
 				segmentIndex[i] = total;
 			}
 
 			// Save array of each q p index for dynamic overlay
 			lastMessageSegmentIndex = Arrays.copyOf(segmentIndex, segmentIndex.length);
+			lastMessageQPIndex = qpList.toArray(new String[0]);
 
 			// Align segments with vertical of the q
 			for(int i = 1; i < segmentLengths.size(); i++)
@@ -357,11 +403,6 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 			}
 			update = true;
 		}
-		else if(lastMessageIncludesQP)
-		{
-			lastMessageIncludesQP = false;
-			lastMessageSegmentIndex = null;
-		}
 
 		if(lastMessageIncludesQP && config.showOverlay())
 		{
@@ -375,9 +416,20 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 
 			if(config.notifyOnQP())
 			{
-				notifier.notify("A qp opportunity!");
+				notifier.notify("A q\u00A0p opportunity!");
 			}
 		}
+	}
+
+	/**
+	 * Returns whether the provided string contains at least one of the config enabled qp strings.
+	 *
+	 * @param message the string to check for qp
+	 * @return true if the specified message contains at least one qp
+	 */
+	private boolean containsQP(String message)
+	{
+		return message.contains(qp) || (config.findMicroQPs() && message.contains(microqp));
 	}
 
 	/**
@@ -592,7 +644,10 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 	{
 		overlayText.clear();
 		overlayTextColour.clear();
-		for (Integer seg : lastMessageSegmentIndex) {
+		for (int i = 0; i < lastMessageSegmentIndex.length; i++)
+		{
+			Integer seg = lastMessageSegmentIndex[i];
+			String qp = lastMessageQPIndex[i];
 
 			int scaledPercentPixelsToW;
 			if (seg < 0)
@@ -611,8 +666,13 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 			} else if (3 > seg - chatBoxTypedTextLength && seg - chatBoxTypedTextLength > 0) {
 				lineText = "Too close.";
 			} else if (seg == chatBoxTypedTextLength) {
-//				lineText = "Target acquired.";
-				lineText = "Hit W now!";
+
+				if(qp.equals(this.qp)) {
+					lineText = "Hit W now!";
+				} else if(qp.equals(this.microqp)) {
+					lineText = "Hit alt + 0176 now!";
+				}
+
 			} else if (seg - chatBoxTypedTextLength < 0) {
 				lineText = "Too far.";
 			}
