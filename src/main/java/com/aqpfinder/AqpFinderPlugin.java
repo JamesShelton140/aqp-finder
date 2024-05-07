@@ -58,10 +58,8 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 	@Inject
 	private AqpFinderOverlay overlay;
 
-	private final String qp = "q p";
-	private final int qpLength = 17;
-	private final String microqp = "qp";
-	private final int microqpLength = 14;
+	private final String qp = "q p"; // length 17
+	private final String microqp = "qp"; // length 14
 	private final int qVerticalOffset = 4;
 	private final int chatIconLength = 13;
 
@@ -278,20 +276,17 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 				int nextMicroQPIndex = (config.findMicroQPs()) ? message.indexOf(microqp) : -1;
 
 				String nextQP;
-				int nextQPLength;
 				int nextQPLocation;
 
 				// message contains "q p" and "qp" not found (earlier)
 				if (nextQPIndex >= 0 && (nextMicroQPIndex == -1 || nextQPIndex < nextMicroQPIndex))
 				{
 					nextQP = qp;
-					nextQPLength = qpLength;
 					nextQPLocation = nextQPIndex;
 				}
 				else // message must contain "qp" first
 				{
 					nextQP = microqp;
-					nextQPLength = microqpLength;
 					nextQPLocation = nextMicroQPIndex;
 				}
 
@@ -305,10 +300,6 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 //			String[] messageSegments = message.split(qp); // Split
 
 			List<Integer> segmentLengths = messageSegments.stream().map(this::getChatLength).collect(Collectors.toList()); // can add 4 to move pixels to vertical of q
-
-			// Get cumulative segment lengths
-			Integer[] segmentIndex = new Integer[segmentLengths.size()];
-			int total = - getChatLength(qpList.get(0)); // minus qpLength as offset
 
 			if(messageNode.getType().equals(ChatMessageType.PRIVATECHAT)) // Private message from another player
 			{
@@ -350,9 +341,13 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 			}
 
 			// Get cumulative segment lengths
-			for(int i = 0; i < segmentIndex.length; i++)
+			Integer[] segmentIndex = new Integer[segmentLengths.size()];
+			int total = segmentLengths.get(0);
+			segmentIndex[0] = total;
+
+			for(int i = 1; i < segmentIndex.length; i++)
 			{
-				total += segmentLengths.get(i) + getChatLength(qpList.get(i));
+				total += segmentLengths.get(i) + getChatLength(qpList.get(i-1));
 				segmentIndex[i] = total;
 			}
 
