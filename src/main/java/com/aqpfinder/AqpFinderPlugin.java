@@ -62,6 +62,8 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 	private final String microqp = "qp"; // length 14
 	private final int qVerticalOffset = 4;
 	private final int chatIconLength = 13;
+	private boolean isAltPressed = false;
+	private String altBuffer = "";
 
 	/**
 	 * An immutable map of characters to size in pixels of that character in OSRS chatbox.
@@ -629,6 +631,12 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 			chatBoxTypedText = newText;
 			chatBoxTypedTextLength = getChatLength(chatBoxTypedText);
 		}
+
+		if(!isAltPressed && altBuffer.equals("0176"))
+		{
+			chatBoxTypedTextLength += 6;
+			altBuffer = "";
+		}
 	}
 
 	/**
@@ -690,17 +698,29 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
  	}
 
 	@Override
-	public void keyTyped(KeyEvent e) {
+	public void keyTyped(KeyEvent e)
+	{
 		checkChatBoxUpdateOverlay();
 	}
 
 	@Override
-	public void keyPressed(KeyEvent e) {
-
+	public void keyPressed(KeyEvent e)
+	{
+		if(isAltPressed) altBuffer += e.getKeyChar();
+		if(e.getKeyCode() == KeyEvent.VK_ALT)
+		{
+			altBuffer = "";
+			isAltPressed = true;
+		}
 	}
 
 	@Override
-	public void keyReleased(KeyEvent e) {
+	public void keyReleased(KeyEvent e)
+	{
+		if(e.getKeyCode() == KeyEvent.VK_ALT)
+		{
+			isAltPressed = false;
+		}
 		checkChatBoxUpdateOverlay();
 	}
 }
