@@ -298,9 +298,6 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 				message = message.substring(nextQPLocation + nextQP.length());
 			}
 
-//			message = message.substring(0, message.lastIndexOf(qp) + qp.length()); // Remove characters after last "q p"
-//			String[] messageSegments = message.split(qp); // Split
-
 			List<Integer> segmentLengths = messageSegments.stream().map(this::getChatLength).collect(Collectors.toList()); // can add 4 to move pixels to vertical of q
 
 			if(messageNode.getType().equals(ChatMessageType.PRIVATECHAT)) // Private message from another player
