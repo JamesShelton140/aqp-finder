@@ -172,6 +172,8 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 				result.put('&',9);
 				result.put('#',11);
 				result.put('°',4);
+				result.put('<',4);
+				result.put('>',4);
 //				other
 				result.put('\u00A0',1);//no-break space
 				return Collections.unmodifiableMap(result);
@@ -268,6 +270,8 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		{
 			lastMessageIncludesQP = true;
 			String originalMessage = message;
+
+			message = preprocessMessage(message);
 
 			List<String> messageSegments = new ArrayList<>();
 			List<String> qpList = new ArrayList<>();
@@ -415,6 +419,27 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 		}
 	}
 
+	/**
+	 * Preprocesses message text to convert RuneLite-escaped characters back to regular characters.
+	 *
+	 * @param message the message to preprocess
+	 * @return message with escaped characters converted to regular characters
+	 */
+	private String preprocessMessage(String message)
+	{
+		if (message == null)
+		{
+			return null;
+		}
+
+        // Taken from:
+        // https://github.com/runelite/runelite/blob/runelite-parent-1.11.15/runelite-client/src/main/java/net/runelite/client/plugins/chatfilter/ChatFilterPlugin.java#L345-L348
+		return message
+                .replace('\u00A0', ' ')
+				.replace("<lt>", "<")
+				.replace("<gt>", ">");
+	}
+	
 	/**
 	 * Returns whether the provided string contains at least one of the config enabled qp strings.
 	 *
