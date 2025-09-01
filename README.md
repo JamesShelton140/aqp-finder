@@ -1,4 +1,4 @@
-# A q p Finder [![](https://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/installs/plugin/aqp-finder)](https://runelite.net/plugin-hub)
+# A q p Finder ![image](https://img.shields.io/endpoint?url=https://api.runelite.net/pluginhub/shields/installs/plugin/aqp-finder)
 Finds each "q p" in chat messages and displays spaces and other characters needed to be typed to match "w" in chat box.
 Will automatically adjust for chat icons like ironman symbols.
 Works in public and private message chats.
