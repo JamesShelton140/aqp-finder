@@ -512,6 +512,40 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 	}
 
 	/**
+	 * Strips chat command prefixes from the input text.
+	 *
+	 * @param text the raw chat input text
+	 * @return text with command prefix removed
+	 */
+	private String stripChatCommandPrefix(String text) {
+		if (text == null || text.isEmpty()) {
+			return text;
+		}
+
+		// Check prefixes from most to least specific
+        // see: https://oldschool.runescape.wiki/w/Chat_Interface#Chat_input
+		String[] prefixes = {
+                "////",                          // Group
+                "///",                           // Guest clan
+				"//",                            // Clan
+				"/gc ", "/GC ", "/Gc ", "/gC ",  // Guest clan
+				"/c ", "/C ",                    // Clan
+				"/p ", "/P ",                    // Public
+				"/f ", "/F ",                    // Channel
+				"/g ", "/G ",                    // Group
+				"/"                              // Channel
+		};
+
+		for (String prefix : prefixes) {
+			if (text.startsWith(prefix)) {
+				return text.substring(prefix.length());
+			}
+		}
+
+		return text;
+	}
+
+	/**
 	 * Returns a string recommendation including the number of space characters to give a total width in pixels equal to the given integer.
 	 *
 	 * If the given integer width cannot be met with only spaces then another character is included.
@@ -626,25 +660,7 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 			newText = client.getVarcStrValue(VarClientStr.CHATBOX_TYPED_TEXT);
 		}
 
-		// ignore chat box channel command strings
-		int controlCharacters = 0;
-
-		if(newText.matches("/.*"))
-		{
-			controlCharacters = 1;
-		}
-
-		if(newText.matches("//.*|/p.*|/P.*|/f.*|/F.*|/c.*|/C.*|/g.*|/G.*"))
-		{
-			controlCharacters = 2;
-		}
-
-		if(newText.matches("/gc.*|/GC.*|/Gc.*|/gC.*"))
-		{
-			controlCharacters = 3;
-		}
-
-		newText = newText.substring(controlCharacters);
+		newText = stripChatCommandPrefix(newText);
 
 		newText = formatChatText(newText);
 
