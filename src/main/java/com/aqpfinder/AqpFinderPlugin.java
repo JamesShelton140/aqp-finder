@@ -176,6 +176,9 @@ public class AqpFinderPlugin extends Plugin implements KeyListener {
 				result.put('°',4);
 				result.put('<',4);
 				result.put('>',4);
+                result.put('|',1);
+                result.put('%',9);
+                result.put('_',7);
 //				other
 				result.put('\u00A0',1);//no-break space
 				return Collections.unmodifiableMap(result);
